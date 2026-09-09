@@ -1,4 +1,12 @@
+# Environment variables (API keys)
 .env
-venv/
+
+# Local SQLite database cache
+searchHistory.db
+searchHistory.db-journal
+
+# Python cache & virtual environment
 __pycache__/
-*.db
+*.py[cod]
+.venv/
+venv/
