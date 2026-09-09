@@ -5,27 +5,42 @@ import os
 import sqlite3 as sql
 from dotenv import load_dotenv
 import json
-load_dotenv() #importing Exa with the API key
+import st_tailwind as tw
+# 1. Page config MUST be the first Streamlit command
+st.set_page_config(page_title="Search Anything", page_icon="🔍")
+
+# 2. Initialize tailwind after page configuration
+tw.initialize_tailwind()
+load_dotenv() 
+
 @st.cache_resource
 def get_db_connection():
     conn = sql.connect('queryHistory.db', check_same_thread=False)
     conn.execute("""CREATE TABLE IF NOT EXISTS UQUERIES (
     query TEXT,
     results_json TEXT
-    ) """) #creates a table with an unique integer and text of the query
+    ) """) 
     return conn
-#database for unique search queries
-connection = get_db_connection() #user's search history
-cursor = connection.cursor() #used to change data
 
-st.set_page_config(page_title="Search Anything", page_icon="🔍")
+connection = get_db_connection() 
+cursor = connection.cursor() 
 
-st.title("Search Anything")
-
+# Styled Header
+st.markdown(
+    """
+    <div style="padding-bottom: 16px;">
+        <span style="font-size: 56px; font-weight: 800; color: #3b82f6; display: block;">
+            Search Anything
+        </span>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
 # Input field and submit button
 query = st.text_input("Enter your query:")
 search_button = st.button("Search & Summarize", type="primary")
 with st.sidebar:
+    st.title("Filters")
     category_display = st.selectbox(
         "Filter Category", 
         ["None", "GitHub Repos", "Research Papers", "News"]
@@ -40,7 +55,7 @@ with st.sidebar:
     category_mapping = {
         "None": None,
         "GitHub Repos": "github",
-        "Research Papers": "research paper",
+        "Research Papers": "publication",
         "News": "news"
     }
 if "results_list" not in st.session_state:
@@ -92,21 +107,21 @@ if search_button and query:
             except Exception as e:
                 st.error(f"An error occurred: {e}")
 
-    if st.session_state.results_list:
-        st.subheader("Results")
-        for idx, result in enumerate(st.session_state.results_list, 1):
-            title = result["title"]
-            url = result["url"]
-            summary = result["summary"]
-            compiled = re.compile(re.escape(query), re.IGNORECASE)
-            highlighted_title = compiled.sub(r":yellow-background[\g<0>]", title) if query.lower() in title.lower() else title
-            with st.expander(f"{idx}. {highlighted_title}", expanded=(idx == 2)): #gives the collapsable boxes
-                st.markdown(f"**URL:** [{url}]({url})")
-                st.markdown("### Summary")
-                if query.lower() in summary.lower():
-                    highlighted_summary = compiled.sub(r":yellow-background[\g<0>]", summary)
-                    st.markdown(highlighted_summary)
-                else:
-                    st.write(summary)
+if st.session_state.results_list:
+    st.subheader("Results")
+    for idx, result in enumerate(st.session_state.results_list, 1):
+        title = result["title"]
+        url = result["url"]
+        summary = result["summary"]
+        compiled = re.compile(re.escape(query), re.IGNORECASE)
+        highlighted_title = compiled.sub(r":yellow-background[\g<0>]", title) if query.lower() in title.lower() else title
+        with st.expander(f"{idx}. {highlighted_title}", expanded=(idx == 2)): #gives the collapsable boxes
+            st.markdown(f"**URL:** [{url}]({url})")
+            st.markdown("### Summary")
+            if query.lower() in summary.lower():
+                highlighted_summary = compiled.sub(r":yellow-background[\g<0>]", summary)
+                st.markdown(highlighted_summary)
+            else:
+                st.write(summary)
 
     
