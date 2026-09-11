@@ -1,3 +1,4 @@
 exa-py
 streamlit
 sqlit
+st_tailwind
