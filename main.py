@@ -6,10 +6,10 @@ import sqlite3 as sql
 from dotenv import load_dotenv
 import json
 import st_tailwind as tw
-# 1. Page config MUST be the first Streamlit command
+# page config 
 st.set_page_config(page_title="Search Anything", page_icon="🔍")
 
-# 2. Initialize tailwind after page configuration
+# initialize tailwind after page configuration
 tw.initialize_tailwind()
 load_dotenv() 
 
@@ -25,7 +25,7 @@ def get_db_connection():
 connection = get_db_connection() 
 cursor = connection.cursor() 
 
-# Styled Header
+# styled header
 st.markdown(
     """
     <div style="padding-bottom: 16px;">
