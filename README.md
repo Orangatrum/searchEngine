@@ -33,7 +33,11 @@ A full-stack, AI-powered search engine built with **Python**, **Streamlit**, and
 
 ### Installation & Setup
 
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/YOUR_USERNAME/python-search-engine.git](https://github.com/YOUR_USERNAME/python-search-engine.git)
-   cd python-search-engine
+git clone [https://github.com/YOUR_USERNAME/python-ai-search.git](https://github.com/YOUR_USERNAME/python-ai-search.git)
+cd python-ai-search
+
+python -m venv venv
+# On Windows:
+venv\\Scripts\\activate
+# On macOS/Linux:
+source venv/bin/activate
