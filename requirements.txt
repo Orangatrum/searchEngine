@@ -1,0 +1,5 @@
+exa-py
+streamlit
+flask
+requests
+python-dotenv
