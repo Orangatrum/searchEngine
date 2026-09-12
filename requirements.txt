@@ -3,3 +3,4 @@ streamlit
 flask
 requests
 python-dotenv
+st-tailwind
