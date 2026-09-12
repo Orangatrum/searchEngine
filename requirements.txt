@@ -1,4 +1,5 @@
 exa-py
 streamlit
-sqlit
-st_tailwind
+flask
+requests
+python-dotenv

@@ -1,31 +1,8 @@
-from exa_py import Exa
 import streamlit as st
-import re
-import os
-import sqlite3 as sql
-from dotenv import load_dotenv
-import json
-import st_tailwind as tw
-# page config 
+import requests
+
 st.set_page_config(page_title="Search Anything", page_icon="🔍")
 
-# initialize tailwind after page configuration
-tw.initialize_tailwind()
-load_dotenv() 
-
-@st.cache_resource
-def get_db_connection():
-    conn = sql.connect('queryHistory.db', check_same_thread=False)
-    conn.execute("""CREATE TABLE IF NOT EXISTS UQUERIES (
-    query TEXT,
-    results_json TEXT
-    ) """) 
-    return conn
-
-connection = get_db_connection() 
-cursor = connection.cursor() 
-
-# styled header
 st.markdown(
     """
     <div style="padding-bottom: 16px;">
@@ -33,95 +10,43 @@ st.markdown(
             Search Anything
         </span>
     </div>
-    """, 
-    unsafe_allow_html=True
+    """,
+    unsafe_allow_html=True,
 )
-# Input field and submit button
+
 query = st.text_input("Enter your query:")
 search_button = st.button("Search & Summarize", type="primary")
-with st.sidebar:
-    st.title("Filters")
-    category_display = st.selectbox(
-        "Filter Category", 
-        ["None", "GitHub Repos", "Research Papers", "News"]
-        )
-            
-    year_options = ['All-Time'] + list(range(2026, 2006, -1))
-            
-    yearSelection = st.selectbox(
-        "Filter Publish Date",
-        options=year_options,
-        )
-    category_mapping = {
-        "None": None,
-        "GitHub Repos": "github",
-        "Research Papers": "publication",
-        "News": "news"
-    }
+
 if "results_list" not in st.session_state:
     st.session_state.results_list = []
-if search_button and query:
-    
-    #Check database if a query exists to load it instantly from SQLite to save time and API credits
-    cache_key = f"{query}|cat:{category_display}|year:{yearSelection}".lower()
-    cursor.execute("SELECT results_json FROM UQUERIES WHERE LOWER(query) = ?", (cache_key,))
-    cached_record = cursor.fetchone()
-    if cached_record:
-        st.session_state.results_list = json.loads(cached_record[0])
-    else:
-        api_key = os.getenv("API_KEY")
-        if not api_key:
-            st.error("API_KEY environment variable not found. Please check your .env file.")
-            st.stop()
 
-        exa = Exa(api_key=api_key)
-        querySearch = {
-            "query": f"{query} in English",
-            "num_results": 5,
-            "contents": {"summary": True}
-        }
-        if yearSelection != "All-Time":
-            querySearch["start_published_date"] = f"{yearSelection}-01-01T00:00:00.000Z"
-            querySearch["end_published_date"] = f"{yearSelection}-12-31T23:59:59.000Z"
-        selectedCategory = category_mapping.get(category_display)
-        if selectedCategory is not None:
-            querySearch["category"] = category_mapping[category_display]
-        with st.spinner("Searching..."):
-            
-            try:
-                # Fetch search results along with summary text from Exa
-                
-                response = exa.search(
-                    **querySearch
-                )
-                st.session_state.results_list =[{"title" :getattr(r, "title", "Untitled Result"),
-                                    "url" : getattr(r, "url", "#"),
-                                    "summary" : getattr(r, "summary", "No summary available.")}
-                                    for r in response.results]
-                
-                
-                cursor.execute("INSERT INTO UQUERIES (query, results_json) VALUES(?, ?)", (cache_key, json.dumps(st.session_state.results_list)))
-                connection.commit()
-                # Render results using expanders
-               
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+if search_button and query:
+    with st.spinner("Searching..."):
+        try:
+            response = requests.post(
+                "http://localhost:5000/api/search",
+                json={"query": query},
+                timeout=30,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            results = payload.get("results", {}).get("data", [])
+            st.session_state.results_list = results
+        except requests.RequestException as exc:
+            st.error(f"Request failed: {exc}")
+            st.session_state.results_list = []
 
 if st.session_state.results_list:
     st.subheader("Results")
     for idx, result in enumerate(st.session_state.results_list, 1):
-        title = result["title"]
-        url = result["url"]
-        summary = result["summary"]
-        compiled = re.compile(re.escape(query), re.IGNORECASE)
-        highlighted_title = compiled.sub(r":yellow-background[\g<0>]", title) if query.lower() in title.lower() else title
-        with st.expander(f"{idx}. {highlighted_title}", expanded=(idx == 2)): #gives the collapsable boxes
+        title = result.get("title", "Untitled Result")
+        url = result.get("url", "#")
+        summary = result.get("summary", "No summary available.")
+
+        with st.expander(f"{idx}. {title}", expanded=(idx == 1)):
             st.markdown(f"**URL:** [{url}]({url})")
             st.markdown("### Summary")
-            if query.lower() in summary.lower():
-                highlighted_summary = compiled.sub(r":yellow-background[\g<0>]", summary)
-                st.markdown(highlighted_summary)
-            else:
-                st.write(summary)
+            st.markdown(summary)
+
 
     
